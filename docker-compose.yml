@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: netcompare-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: netcompare
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-netcompare_local_dev}
+      POSTGRES_DB: netcompare
+    ports:
+      - "5432:5432"
+    volumes:
+      - netcompare-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U netcompare -d netcompare"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  netcompare-postgres:

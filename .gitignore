@@ -1,0 +1,32 @@
+# Local credentials and database state
+backend/.env
+.netcompare-db*/
+work/postgresql/
+
+# Installed local PostgreSQL runtime
+tools/postgresql17/
+
+# Node dependencies and generated builds
+node_modules/
+frontend/node_modules/
+frontend/dist/
+backend/node_modules/
+backend/generated/
+
+# Local secrets and generated files
+.env
+**/.env
+node_modules/
+dist/
+.netcompare-db*/
+work/
+tools/
+
+# Local secrets and generated files
+.env
+**/.env
+node_modules/
+dist/
+.netcompare-db*/
+work/
+tools/

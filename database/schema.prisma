@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../backend/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Medium {
+  FIBER
+  CELLULAR_4G
+  CELLULAR_5G
+  FIXED_WIRELESS
+  SATELLITE
+  OTHER
+}
+enum Connection {
+  WIFI
+  ETHERNET
+}
+enum Verify {
+  SELF_REPORTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+enum EndpointStatus {
+  ONLINE
+  OFFLINE
+  PAUSED
+}
+enum MeasureStatus {
+  SUCCESS
+  FAILED
+}
+enum Source {
+  AGENT
+  DEMO
+}
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+model Participant {
+  id                 String                @id @default(cuid())
+  displayName        String?
+  city               String
+  area               String?
+  isp                String
+  medium             Medium
+  connection         Connection
+  deviceInfo         String?
+  consent            Boolean               @default(false)
+  verificationStatus Verify               @default(SELF_REPORTED)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  endpoint           Endpoint?
+  measurements       Measurement[]
+  schedules          Schedule[]
+  jobs               MeasurementJob[]
+  evidence           VerificationEvidence[]
+
+  @@index([medium, isp, city])
+}
+
+model Endpoint {
+  id            String         @id @default(cuid())
+  participantId String         @unique
+  status        EndpointStatus @default(OFFLINE)
+  lastSeenAt    DateTime?
+  agentVersion  String?
+  osLabel       String?
+  participant   Participant    @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
+model Measurement {
+  id              String        @id @default(cuid())
+  participantId   String
+  accessMedium    String
+  isp             String
+  locationLabel   String
+  connectionType  Connection
+  measuredAt      DateTime      @default(now())
+  latencyMs       Float?
+  packetLossPct   Float?
+  dnsMs           Float?
+  downloadMbps    Float?
+  uploadMbps      Float?
+  loadedJitterMs  Float?
+  wifiSignalDbm   Float?
+  localLatencyMs  Float?
+  conditions      Json?
+  status          MeasureStatus @default(SUCCESS)
+  error           String?
+  source          Source        @default(AGENT)
+  participant     Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([measuredAt, accessMedium, status])
+  @@index([participantId, measuredAt])
+}
+
+model Schedule {
+  id              String            @id @default(cuid())
+  participantId   String
+  startsAt        DateTime
+  endsAt          DateTime
+  intervalMinutes Int
+  profile         String            @default("standard")
+  enabled         Boolean           @default(true)
+  nextRunAt       DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  participant     Participant       @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  jobs            MeasurementJob[]
+
+  @@index([enabled, nextRunAt])
+}
+
+model MeasurementJob {
+  id            String      @id @default(cuid())
+  scheduleId    String
+  participantId String
+  scheduledAt   DateTime
+  status        JobStatus   @default(QUEUED)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  error         String?
+  schedule      Schedule    @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledAt])
+}
+
+model VerificationEvidence {
+  id          String      @id @default(cuid())
+  participantId String
+  description String?
+  storageKey  String?
+  submittedAt DateTime    @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  status      Verify      @default(PENDING)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
